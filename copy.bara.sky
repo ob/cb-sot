@@ -1,0 +1,52 @@
+github_sot_url = "https://github.com/ob/cb-sot.git"
+github_public_url = "https://github.com/ob/cb-sot-public.git"
+
+core.workflow(
+    name = "export",
+    origin = git.origin(
+        url = github_sot_url,
+        ref = "master",
+    ),
+    destination = git.destination(
+        url = github_public_url,
+        fetch = "master",
+    ),
+    origin_files = glob(
+        ["somedir/**"],
+        exclude = [
+            "somedir/bfile",
+        ],
+    ),
+    destination_files = glob(["**"]),
+    authoring = authoring.pass_thru("Default email <default@defatult.com>"),
+    transformations = [
+        core.move("somedir", ""),
+    ],
+)
+
+core.workflow(
+    name = "import_pr",
+    mode = "CHANGE_REQUEST",
+    origin = git.github_pr_origin(
+        url = github_public_url,
+        branch = "master",
+    ),
+    destination = git.destination(
+        url = github_sot_url,
+        fetch = "master",
+    ),
+    origin_files = glob(["**"]),
+    destination_files = glob(
+        ["somedir/**"],
+        exclude = [
+            "somedir/bfile",
+        ],
+    ),
+    authoring = authoring.pass_thru("Default email <default@defatult.com>"),
+    transformations = [
+        core.move("", "somedir"),
+        metadata.save_author(),
+        metadata.expose_label("COPYBARA_INTEGRATE_REVIEW"),
+        metadata.expose_label("GITHUB_PR_NUMBER", new_name = "Closes", separator = " #"),
+    ],
+)
